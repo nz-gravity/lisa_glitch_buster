@@ -1,0 +1,93 @@
+[train_models-system]
+requires = [
+    "setuptools>=64",
+    "setuptools-scm>=8.0",
+    "wheel"
+]
+train_models-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]  # list of folders that contain the packages (["."] by default)
+include = ["lisa_glitch_buster*"]  # package names should match these glob patterns (["*"] by default)
+exclude = ["lisa_glitch_buster.tests*"]  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+
+[project]
+name = "lisa_glitch_buster"
+version = "0.0.1"
+requires-python = ">=3.8"
+description = "FILL ME" # TODO
+readme = "README.md"
+authors = [
+    {name = "Tarin E", email = "tarin@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+]
+dependencies = [
+    "scikit-learn>=1.3.2",
+    "torch>=2.0.1",
+    "torchsummary>=1.5.1",
+    "torchvision>=0.15.2",
+    "pandas",
+    "click",
+    "loguru",
+    "matplotlib",
+    "tqdm"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-click",
+    "pytest-cov>=4.1.0",
+    "coverage[toml]",
+    "pre-commit",
+    "flake8>=5.0.4",
+    "black==22.10.0",
+    "jupyter-book",
+]
+
+
+
+
+[project.urls]  # Optional
+"Homepage" = "https://github.com/lisa_glitch_buster/lisa_glitch_buster"
+"Bug Reports" = "https://github.com/lisa_glitch_buster/lisa_glitch_buster"
+"Source" = "https://github.com/lisa_glitch_buster/lisa_glitch_buster"
+
+
+
+[tool.black]
+line-length = 79
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | train_models
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 79
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[project.scripts]
+lisa_glitch_buster_generate = "lisa_glitch_buster.cli:cli_generate"
+lisa_glitch_buster_train = "lisa_glitch_buster.cli:cli_train"

@@ -57,9 +57,9 @@ class GlitchFitter:
 
         if kwargs["sampler"] == "emcee":
             if "nwalkers" not in kwargs:
-                kwargs["nwalkers"] = 100
+                kwargs["nwalkers"] = 10
             if "nsteps" not in kwargs:
-                kwargs["nsteps"] = 5000
+                kwargs["nsteps"] = 2000
 
         self.plot(save_fn=f"{self.outdir}/data.png")
         self.result = run_sampler(
@@ -75,7 +75,7 @@ class GlitchFitter:
         return fpe.sample_dataframe(s0, n_sample)
 
     def compute_posterior_predictive(self, posterior, max_n_samp=1000):
-
+        max_n_samp = min(max_n_samp, len(posterior))
         samples = posterior.sample(max_n_samp).to_dict("records")
         posterior_predictive = np.array(
             [self.model(self.times, **sample) for sample in samples]

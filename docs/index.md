@@ -1,6 +1,6 @@
 # lisa_glitch_buster
 
-lisa_glitch_buster is a Python library for training and using a GAN (Generative Adversarial Network) to generate synthetic GW signals from Stellar core collapse events.
+lisa_glitch_buster is a Python library for
 
 ## Installation
 
@@ -10,8 +10,7 @@ pip install lisa_glitch_buster
 
 ## Usage
 
-- [Training a GAN](training.ipynb)
-- [Generating Synthetic GW Signals](signal_generation.ipynb)
+- [Eg]()
 
 ## Paper
 
@@ -23,9 +22,5 @@ Code to generate the plots for the paper are available [here](paper_plots.ipynb)
 If you use lisa_glitch_buster in your research, please cite the following paper:
 ```bibtex
 @article{lisa_glitch_buster,
-  title={lisa_glitch_buster: A Generative Adversarial Network for Synthetic Gravitational Wave Signal Generation},
-  author={Tarin,
-  journal={arXiv preprint arXiv:2109.14889},
-  year={2024}
 }
 ```

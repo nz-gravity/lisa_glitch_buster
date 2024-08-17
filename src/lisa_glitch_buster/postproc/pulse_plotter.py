@@ -3,7 +3,13 @@ import numpy as np
 
 
 def plot_pulse(
-    data, time, pulse: np.ndarray = None, posterior_predictive=None, ax=None
+    data,
+    time,
+    pulse: np.ndarray = None,
+    posterior_predictive=None,
+    ax=None,
+    color="C0",
+    label="Posterior",
 ):
     if ax is None:
         fig, ax = plt.subplots()
@@ -15,8 +21,8 @@ def plot_pulse(
         quntiles = np.percentile(
             posterior_predictive, [0.05, 0.5, 0.95], axis=0
         )
-        ax.fill_between(time, quntiles[0], quntiles[2], color=f"C0", alpha=0.3)
-        ax.plot(time, quntiles[1], color=f"C0", label="Posterior")
+        ax.fill_between(time, quntiles[0], quntiles[2], color=color, alpha=0.3)
+        ax.plot(time, quntiles[1], color=color, label=label)
 
     ax.legend()
     ax.set_xlabel("Time")

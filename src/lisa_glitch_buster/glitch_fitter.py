@@ -1,5 +1,6 @@
 import os
 
+import bilby.core.result
 import numpy as np
 from bilby import run_sampler
 from bilby.core.fisher import FisherMatrixPosteriorEstimator
@@ -7,6 +8,9 @@ from bilby.core.fisher import FisherMatrixPosteriorEstimator
 from .backend.likelihood import get_likelihood
 from .backend.model import MODELS
 from .backend.priors import get_priors
+from .backend.snr import get_snr
+from .logger import logger
+from .postproc.plot_corner import plot_corner
 from .postproc.pulse_plotter import plot_pulse
 
 
@@ -26,11 +30,27 @@ class GlitchFitter:
         self.outdir = outdir
         self.model_name = model
         self.model = MODELS[model]
+
+        # injection info
+        self.true_model = None
+        self.injection_snr = None
         self.injection_parameters = injection_parameters
 
         os.makedirs(outdir, exist_ok=True)
 
         self.__bayesian_setup()
+
+    @property
+    def injection_parameters(self):
+        return self._injection_parameters
+
+    # setter for the injection_parameter
+    @injection_parameters.setter
+    def injection_parameters(self, value):
+        self._injection_parameters = value
+        self.true_model = self.model(self.times, **value)
+        self.injection_snr = get_snr(self.amplitudes, self.true_model)
+        logger.info(f"Injected Glitch SNR: {self.injection_snr:.2f}")
 
     def __bayesian_setup(self):
         self.priors = get_priors(self.trigger_time, model=self.model_name)
@@ -40,7 +60,7 @@ class GlitchFitter:
             model=self.model,
             priors=self.priors,
         )
-        self.result = None
+        self.result: bilby.core.result.Result = None
 
     def run_sampler(self, **kwargs):
 
@@ -69,7 +89,9 @@ class GlitchFitter:
 
     def get_fisher_posterior(self, n_sample=1000):
         fpe = FisherMatrixPosteriorEstimator(
-            likelihood=self.likelihood, priors=self.priors
+            likelihood=self.likelihood,
+            priors=self.priors,
+            n_prior_samples=1000,
         )
         s0 = fpe.get_maximum_likelihood_sample()
         return fpe.sample_dataframe(s0, n_sample)
@@ -83,6 +105,24 @@ class GlitchFitter:
 
         return posterior_predictive
 
+    def plot_corner(self, save_fn=None):
+        if self.result is None:
+            raise ValueError("No result found. Run the sampler first.")
+
+        p = self.result.posterior
+        fisher_posterior = self.get_fisher_posterior(n_sample=len(p))
+        params = fisher_posterior.columns
+        p = p[params].values
+        fisher_posterior = fisher_posterior[params].values
+
+        fig = plot_corner(
+            chains=[p, fisher_posterior],
+            chainLabels=["Sampling", "Fisher"],
+            paramNames=params,
+            truths=[self.injection_parameters[p] for p in params],
+        )
+        fig.savefig(save_fn)
+
     def plot(self, save_fn=None):
         pulse, posterior_predictive = None, None
         if self.injection_parameters is not None:
@@ -92,6 +132,7 @@ class GlitchFitter:
             posterior_predictive = self.compute_posterior_predictive(
                 self.result.posterior
             )
+
         else:
             posterior_predictive = None
         ax = plot_pulse(
@@ -99,8 +140,30 @@ class GlitchFitter:
             self.times,
             pulse=pulse,
             posterior_predictive=posterior_predictive,
+            color="C0",
+            label="Posterior Samples",
         )
 
+        fisher_post = self.get_fisher_posterior(n_sample=1000)
+        posterior_predictive = self.compute_posterior_predictive(fisher_post)
+        ax = plot_pulse(
+            self.amplitudes,
+            self.times,
+            pulse=pulse,
+            posterior_predictive=posterior_predictive,
+            ax=ax,
+            color="C1",
+            label="Fisher Samples",
+        )
+
+        # annnotate top right with SNR
+        if self.injection_snr:
+            ax.annotate(
+                f"SNR: {self.injection_snr:.2f}",
+                xy=(0.95, 0.05),
+                xycoords="axes fraction",
+                horizontalalignment="right",
+            )
         if save_fn:
             ax.get_figure().savefig(save_fn)
 

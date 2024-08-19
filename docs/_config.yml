@@ -1,7 +1,7 @@
 #######################################################################################
 # Book settings
 title                       : "lisa_glitch_buster" # The title of the book. Will be placed in the left navbar.
-author                      : "Tarin E., Matt E."  # The author of the book
+author                      : "Friends."  # The author of the book
 copyright                   : "2024"  # Copyright year to be placed in the footer
 logo                        : "_static/logo.png"  # A path to the book logo
 exclude_patterns            : [_build, Thumbs.db, .DS_Store, "**.ipynb_checkpoints"]

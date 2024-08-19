@@ -19,6 +19,5 @@ def get_snr(data, model):
         The signal-to-noise ratio of the glitch.
     """
     #  time series SNR
-    snr = np.sum(data * model) / np.sqrt(np.sum(data**2))
-
+    snr = np.inner(data, model) / np.sqrt(np.inner(model, model))
     return snr

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+from ..backend.snr import get_snr
 
 def plot_pulse(
     data,
@@ -16,7 +16,8 @@ def plot_pulse(
 
     ax.plot(time, data, label="Data", color="lightgray", zorder=-10)
     if pulse is not None:
-        ax.plot(time, pulse, label="True", color="black", zorder=10)
+        snr = get_snr(data, pulse)
+        ax.plot(time, pulse, label=f"True (SNR={snr:.2f})", color="black", zorder=10)
     if posterior_predictive is not None:
         quntiles = np.percentile(
             posterior_predictive, [0.05, 0.5, 0.95], axis=0

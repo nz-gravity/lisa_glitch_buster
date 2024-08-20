@@ -28,7 +28,7 @@ def get_priors(trigger_time, delta_t=1, model="FRED_pulse"):
             minimum=trigger_time - delta_t,
             maximum=trigger_time + delta_t,
         )
-        priors["scale"] = LogUniform(name="scale", minimum=0.1, maximum=10)
+        priors["scale"] = LogUniform(name="scale", minimum=1e-3, maximum=1e3)
         priors["tau"] = LogUniform(name="tau", minimum=0.1, maximum=10)
         priors["xi"] = Uniform(name="xi", minimum=1e-2, maximum=10)
 

@@ -6,7 +6,7 @@ from lisa_glitch_buster.backend.priors import get_priors
 from lisa_glitch_buster.glitch_fitter import GlitchFitter
 
 
-def _test_basic_fit(tmpdir):
+def test_basic_fit(tmpdir):
 
     np.random.seed(0)
 
@@ -41,6 +41,7 @@ def _test_basic_fit(tmpdir):
         plot=True,
         # clean=True,
         sampler="dynesty",
+        nlive=10
         # nwalkers=10,
         # nsteps=1200,
     )

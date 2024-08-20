@@ -3,10 +3,8 @@ root: index.md
 parts:
   - caption: Examples
     chapters:
-    - file: training.ipynb
-    - file: signal_generation.ipynb
-    - file: paper_plots.ipynb
-    - file: snr.ipynb
+    - file: fred_fit_example.ipynb
+      title: Fred Fit Example
   - caption: Links
     chapters:
     - url: https://www.youtube.com/watch?v=dQw4w9WgXcQ

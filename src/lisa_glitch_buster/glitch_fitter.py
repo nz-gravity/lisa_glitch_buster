@@ -123,7 +123,7 @@ class GlitchFitter:
         )
         fig.savefig(save_fn)
 
-    def plot(self, save_fn=None):
+    def plot(self, save_fn=None, plot_fisher=False):
         pulse, posterior_predictive = None, None
         if self.injection_parameters is not None:
             pulse = self.model(self.times, **self.injection_parameters)
@@ -144,26 +144,27 @@ class GlitchFitter:
             label="Posterior Samples",
         )
 
-        fisher_post = self.get_fisher_posterior(n_sample=1000)
-        posterior_predictive = self.compute_posterior_predictive(fisher_post)
-        ax = plot_pulse(
-            self.amplitudes,
-            self.times,
-            pulse=pulse,
-            posterior_predictive=posterior_predictive,
-            ax=ax,
-            color="C1",
-            label="Fisher Samples",
-        )
-
-        # annnotate top right with SNR
-        if self.injection_snr:
-            ax.annotate(
-                f"SNR: {self.injection_snr:.2f}",
-                xy=(0.95, 0.05),
-                xycoords="axes fraction",
-                horizontalalignment="right",
+        if plot_fisher:
+            fisher_post = self.get_fisher_posterior(n_sample=1000)
+            posterior_predictive = self.compute_posterior_predictive(fisher_post)
+            ax = plot_pulse(
+                self.amplitudes,
+                self.times,
+                pulse=pulse,
+                posterior_predictive=posterior_predictive,
+                ax=ax,
+                color="C1",
+                label="Fisher Samples",
             )
+
+        # # annnotate top right with SNR
+        # if self.injection_snr:
+        #     ax.annotate(
+        #         f"SNR: {self.injection_snr:.2f}",
+        #         xy=(0.95, 0.05),
+        #         xycoords="axes fraction",
+        #         horizontalalignment="right",
+        #     )
         if save_fn:
             ax.get_figure().savefig(save_fn)
 

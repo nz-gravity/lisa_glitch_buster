@@ -31,14 +31,10 @@ classifiers = [
 ]
 dependencies = [
     "scipy",
-    "torch>=2.0.1",
-    "torchsummary>=1.5.1",
-    "torchvision>=0.15.2",
     "pandas",
-    "click",
-    "loguru",
     "matplotlib",
-    "tqdm"
+    "tqdm",
+    "bilby"
 ]
 
 [project.optional-dependencies]

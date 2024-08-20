@@ -1,16 +1,12 @@
 # lisa_glitch_buster
 
-lisa_glitch_buster is a Python library for
+lisa_glitch_buster is a Python library for fitting FRED models to LISA data. 
 
 ## Installation
 
 ```bash
 pip install lisa_glitch_buster
 ```
-
-## Usage
-
-- [Eg]()
 
 ## Paper
 

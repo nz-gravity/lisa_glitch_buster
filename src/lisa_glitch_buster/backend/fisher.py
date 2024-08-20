@@ -71,14 +71,13 @@ class FisherMatrixPosteriorEstimator(object):
         return iFIM
 
     def sample_array(self, sample, n=1):
-        from .utils.random import rng
 
         if sample == "maxL":
             sample = self.get_maximum_likelihood_sample()
 
         self.mean = np.array(list(sample.values()))
         self.iFIM = self.calculate_iFIM(sample)
-        return rng.multivariate_normal(self.mean, self.iFIM, n)
+        return np.random.multivariate_normal(self.mean, self.iFIM, n)
 
     def sample_dataframe(self, sample, n=1):
         samples = self.sample_array(sample, n)

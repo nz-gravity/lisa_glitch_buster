@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import scipy.special as special
 from scipy.signal import convolve
+from scipy.optimize import root_scalar
 
 from .common import MAX_EXP, MAX_FLOAT, MIN_FLOAT
 
@@ -60,3 +61,12 @@ def FRED_pulse(times, start, scale, tau, xi, **kwargs):
         ),
     )
     return rate
+
+
+def fred_end_time(start, scale, tau, xi, threshold=0.01):
+    def amplitude(t):
+        return scale * np.exp(-xi * ((tau / (t - start)) + ((t - start) / tau) - 2))
+
+    result = root_scalar(lambda t: amplitude(t) - threshold * scale,
+                         x0=start + tau, x1=start + 10 * tau)
+    return result.root

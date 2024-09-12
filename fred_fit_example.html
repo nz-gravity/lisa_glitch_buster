@@ -62,6 +62,8 @@ const thebe_selector_input = "pre"
 const thebe_selector_output = ".output, .cell_output"
 </script>
     <script async="async" src="_static/sphinx-thebe.js"></script>
+    <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'fred_fit_example';</script>
     <link rel="shortcut icon" href="https://icons8.com/icon/GgALV7LjQj0u/treble-clef"/>
     <link rel="index" title="Index" href="genindex.html" />
@@ -403,6 +405,32 @@ document.write(`
                   
   <section class="tex2jax_ignore mathjax_ignore" id="fit-a-fred">
 <h1>Fit a FRED<a class="headerlink" href="#fit-a-fred" title="Permalink to this heading">#</a></h1>
+<p>A FRED (fast rise, exponential decay) pulse is a common model for glitches in LISA data.
+Here we show how to fit a FRED pulse to some synthetic data.</p>
+<p>We use the following parameterisation of the FRED equation:</p>
+<p><span class="math notranslate nohighlight">\( S(t|A,\Delta,\tau,\xi) = A \exp \left[ - \xi \left(
+        \frac{t - \Delta}{\tau} + \frac{\tau}{t-\Delta}  \right) -2  \right]\)</span></p>
+<p>Where</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(A\)</span> (the scale) multiplies the entire expression, controlling the overall amplitude,</p></li>
+<li><p><span class="math notranslate nohighlight">\(\Delta\)</span> (the start) is the time at which the pulse begins, and</p></li>
+<li><p><span class="math notranslate nohighlight">\(\tau\)</span> is the duration, and</p></li>
+<li><p><span class="math notranslate nohighlight">\(\xi\)</span> is the asymmetry parameter</p></li>
+</ul>
+<p>The exponential term <span class="math notranslate nohighlight">\(\exp(...)\)</span> creates the pulse shape:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(-\xi\)</span>` in front of the parentheses controls the overall decay rate and asymmetry.</p></li>
+<li><p><span class="math notranslate nohighlight">\((\tau / (t - \Delta))\)</span> contributes to the initial rise of the pulse.</p></li>
+<li><p><span class="math notranslate nohighlight">\(((t - \Delta) / \tau)\)</span> contributes to the later decay of the pulse.</p></li>
+<li><p>The -2.0 term helps normalize the pulse shape.</p></li>
+</ul>
+<p>The interplay between <span class="math notranslate nohighlight">\(\tau\)</span> and <span class="math notranslate nohighlight">\(\xi\)</span> determines the specific shape of the pulse:</p>
+<ul class="simple">
+<li><p>Larger <span class="math notranslate nohighlight">\(\tau\)</span> values result in a wider pulse.</p></li>
+<li><p>Larger <span class="math notranslate nohighlight">\(\xi\)</span> values make the pulse more asymmetric, with a faster rise and slower decay.</p></li>
+</ul>
+<p><video src="_static/FREDPulseAnimation.mp4"></video></p>
+<p>We will generate some synthetic data with a FRED pulse and then fit a FRED pulse to the data.</p>
 <section id="snr-1000">
 <h2>SNR ~ 1000<a class="headerlink" href="#snr-1000" title="Permalink to this heading">#</a></h2>
 <div class="cell docutils container">
@@ -413,7 +441,7 @@ document.write(`
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">lisa_glitch_buster.backend.model</span> <span class="kn">import</span> <span class="n">FRED_pulse</span>
-<span class="kn">from</span> <span class="nn">lisa_glitch_buster.glitch_fitter</span> <span class="kn">import</span> <span class="n">GlitchFitter</span>
+<span class="kn">from</span> <span class="nn">lisa_glitch_buster.glitch_fitter_bilby</span> <span class="kn">import</span> <span class="n">GlitchFitter</span>
 
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 

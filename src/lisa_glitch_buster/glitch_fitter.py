@@ -3,8 +3,8 @@ import os
 import bilby.core.result
 import numpy as np
 from bilby import run_sampler
-from bilby.core.fisher import FisherMatrixPosteriorEstimator
 
+from .backend.fisher import FisherMatrixPosteriorEstimator
 from .backend.likelihood import get_likelihood
 from .backend.model import MODELS
 from .backend.priors import get_priors

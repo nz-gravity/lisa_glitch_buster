@@ -3,18 +3,27 @@ import os
 import bilby.core.result
 import numpy as np
 from bilby import run_sampler
+from eryn.ensemble import EnsembleSampler, State
+from eryn.prior import ProbDistContainer, uniform_dist
+
+from .constants import (
+    NDIM,
+    PARAM_LATEX,
+    SCALE_RANGE,
+    START_RANGE,
+    TAU_RANGE,
+    TOBS,
+    XI_RANGE,
+)
+from .data_generator import Data
+from .logger import logger
+from .postproc.image_utils import concat_images
+from .postproc.plot_corner import plot_corner
+from .postproc.pulse_plotter import plot_pulse
 
 # from .backend.fisher import FisherMatrixPosteriorEstimator
 
-from .logger import logger
-from .postproc.plot_corner import plot_corner
-from .postproc.pulse_plotter import plot_pulse
-from .postproc.image_utils import concat_images
 
-from .data_generator import Data
-from .constants import START_RANGE, SCALE_RANGE, TAU_RANGE, XI_RANGE, TOBS, PARAM_LATEX, NDIM
-from eryn.prior import uniform_dist, ProbDistContainer
-from eryn.ensemble import EnsembleSampler, State
 
 
 def get_prior(start_time):
@@ -30,19 +39,23 @@ def get_prior(start_time):
 
 class GlitchFitter:
     def __init__(
-            self,
-            data: Data = None,
-            start_time: float = None,
-            label: str = None,
-            seed: int = None,
-            outdir: str = "outdir",
+        self,
+        data: Data = None,
+        start_time: float = None,
+        label: str = None,
+        seed: int = None,
+        outdir: str = "outdir",
     ):
         if seed:
             np.random.seed(seed)
         if data is None:
             data = Data(seed=seed)
         self.data = data
-        self.start_time = data.injection_params["start"] if start_time is None else start_time
+        self.start_time = (
+            data.injection_params["start"]
+            if start_time is None
+            else start_time
+        )
         self.prior = get_prior(self.start_time)
         self.label = data.label if label is None else label
         self.outdir = outdir
@@ -56,24 +69,38 @@ class GlitchFitter:
             for walk in range(nwalkers):
                 ax[i].plot(chain[:, 0, walk, :, i])
                 ax[i].set_ylabel(PARAM_LATEX[i])
-                ax[i].ax_hline(self.injection_params[i], color="k", linestyle="--")
+                ax[i].ax_hline(
+                    self.injection_params[i], color="k", linestyle="--"
+                )
 
         fname = f"{self.outdir}/chains.png" if fname is None else fname
         plt.savefig(fname)
 
     def plot_corner(self, chain):
         samples = chain.reshape(-1, NDIM)
-        corner.corner(samples, truths=np.array([*self.injection_params.values()]))
+        corner.corner(
+            samples, truths=np.array([*self.injection_params.values()])
+        )
         fname = f"{self.outdir}/corner.png" if fname is None else fname
         plt.savefig(fname)
 
     def plot_posterior(self, chain):
         samples = chain.reshape(-1, NDIM)
-        signals = np.array([self.analysis.signal_gen(*s, self.t)[0] for s in samples])
-        qtls = np.percentile(signals, [0.05, .5, 0.95], axis=0)
+        signals = np.array(
+            [self.analysis.signal_gen(*s, self.t)[0] for s in samples]
+        )
+        qtls = np.percentile(signals, [0.05, 0.5, 0.95], axis=0)
         fig, ax = plt.subplots(NDIM, 1)
         ax.plot(TIMES, qtls[1], color="C0")
-        ax.fill_between(TIMES, np.arange(len(qtls[1])), qtls[0], qtls[2], color="C0", alpha=0.5, label="90% CI")
+        ax.fill_between(
+            TIMES,
+            np.arange(len(qtls[1])),
+            qtls[0],
+            qtls[2],
+            color="C0",
+            alpha=0.5,
+            label="90% CI",
+        )
         ax.plot(TIMES, self.data.injection[0], color="k", label="True")
         ax.legend()
         fname = f"{self.outdir}/ppc.png" if fname is None else fname
@@ -89,13 +116,14 @@ class GlitchFitter:
         )
         start_state = State(prior.rvs(size=(1, nwalkers, 1)))
         sampler.run_mcmc(start_state, nsteps, progress=True, burn=burn)
-        chain = sampler.get_chain()['model_0']
+        chain = sampler.get_chain()["model_0"]
 
-        self.plot_trace(chain, nwalkers, 'tmp1.png')
-        self.plot_corner(chain, 'tmp2.png')
-        self.plot_posterior(chain, 'tmp3.png')
-        concat_images(['tmp1.png', 'tmp2.png', 'tmp3.png'], f"{self.outdir}/result.png")
-
+        self.plot_trace(chain, nwalkers, "tmp1.png")
+        self.plot_corner(chain, "tmp2.png")
+        self.plot_posterior(chain, "tmp3.png")
+        concat_images(
+            ["tmp1.png", "tmp2.png", "tmp3.png"], f"{self.outdir}/result.png"
+        )
 
         # save
         np.save(f"{self.outdir}/chain.npy", chain)
@@ -181,4 +209,4 @@ class GlitchFitter:
     #     if save_fn:
     #         ax.get_figure().savefig(save_fn)
 
-        # return ax
+    # return ax

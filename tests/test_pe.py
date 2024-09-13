@@ -1,10 +1,12 @@
-from lisa_glitch_buster.injection_generator import InjectionGenerator
 from lisa_glitch_buster.data_generator import Data
 from lisa_glitch_buster.glitch_fitter_eryn import GlitchFitter
+from lisa_glitch_buster.injection_generator import InjectionGenerator
+
 
 def test_draw_injection(tmpdir):
     fig, ax = InjectionGenerator.plot_prior_samples(n=100)
     fig.savefig(f"{tmpdir}/prior_samples.png")
+
 
 def test_datagen(tmpdir):
     d = Data(seed=42)
@@ -13,11 +15,10 @@ def test_datagen(tmpdir):
 
 
 def test_pe(tmpdir):
-    g = GlitchFitter(seed=42, )
+    g = GlitchFitter(
+        seed=42,
+    )
     g.run_mcmc(nwalkers=10, nsteps=1500, burn=1500)
-
-
-
 
     #
     #

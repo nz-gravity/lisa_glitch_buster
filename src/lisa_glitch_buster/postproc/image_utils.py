@@ -1,7 +1,6 @@
-from PIL import Image
 import os
+
 from PIL import Image
-import os
 
 
 def concat_images(image_paths, final_path):
@@ -12,7 +11,7 @@ def concat_images(image_paths, final_path):
     total_height = sum(img.height for img in images)
 
     # Create a new white image with the calculated dimensions
-    new_image = Image.new('RGB', (max_width, total_height), color='white')
+    new_image = Image.new("RGB", (max_width, total_height), color="white")
 
     # Paste each image centered horizontally
     y_offset = 0

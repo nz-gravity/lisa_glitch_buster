@@ -3,8 +3,8 @@ import sys
 
 import numpy as np
 import scipy.special as special
-from scipy.signal import convolve
 from scipy.optimize import root_scalar
+from scipy.signal import convolve
 
 from .common import MAX_EXP, MAX_FLOAT, MIN_FLOAT
 
@@ -47,16 +47,16 @@ def FRED_pulse(times, start, scale, tau, xi, **kwargs):
         * np.exp(
             -xi
             * (
-                    (
-                            tau
-                            / np.where(
+                (
+                    tau
+                    / np.where(
                         times - start <= 0,
                         times - start - MIN_FLOAT,
                         times - start + MIN_FLOAT,
                     )
-                    )
-                    + ((times - start) / (tau + MIN_FLOAT))
-                    - 2.0
+                )
+                + ((times - start) / (tau + MIN_FLOAT))
+                - 2.0
             )
         ),
     )
@@ -64,17 +64,19 @@ def FRED_pulse(times, start, scale, tau, xi, **kwargs):
 
 
 def fred_amplitude(t, start, scale, tau, xi):
-    return scale * np.exp(-xi * ((tau / (t - start)) + ((t - start) / tau) - 2))
+    return scale * np.exp(
+        -xi * ((tau / (t - start)) + ((t - start) / tau) - 2)
+    )
+
 
 def fred_end_time(start, scale, tau, xi, threshold=0.01):
     a = lambda t: fred_amplitude(t, start, scale, tau, xi) - threshold * scale
-    result = root_scalar(
-        lambda t: a(t) ,
-        x0=start + tau, x1=start + 10 * tau
-    )
+    result = root_scalar(lambda t: a(t), x0=start + tau, x1=start + 10 * tau)
     return result.root
 
 
-def waveform(start: float, scale: float, tau: float, xi: float, t: np.ndarray) -> np.ndarray:
+def waveform(
+    start: float, scale: float, tau: float, xi: float, t: np.ndarray
+) -> np.ndarray:
     p = FRED_pulse(t, start=start, scale=scale, tau=tau, xi=xi)
     return [p, p]

@@ -36,7 +36,9 @@ dependencies = [
     "tqdm",
     "bilby",
     "eryn",
-    "lisaanalysistools"
+    "lisaanalysistools",
+    "numba",
+    "requests"
 ]
 
 [project.optional-dependencies]

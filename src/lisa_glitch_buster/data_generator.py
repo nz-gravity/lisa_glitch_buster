@@ -47,10 +47,11 @@ class Data:
     def injection_params(self):
         if not hasattr(self, "_injection_params"):
             if self.seed:
+                print(f"Getting injection from seed{seed}")
                 self._injection_params = InjectionGenerator.draw_injection()
             else:
                 self._injection_params = {
-                    "start": self.Tobs * 0.25,
+                    "start": TOBS * 0.25,
                     "scale": 1e-20,
                     "tau": 100,
                     "xi": 1,

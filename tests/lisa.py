@@ -1,192 +1,108 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from lisatools.utils.constants import YRSID_SI
-from copy import deepcopy  # can be useful
-
-from lisatools.sensitivity import SensitivityMatrix, LISASens, A1TDISens
-from lisatools.datacontainer import DataResidualArray
-from lisatools.analysiscontainer import AnalysisContainer
 
 
-from lisa_glitch_buster.backend.model.fred_pulse import FRED_pulse, fred_end_time
+class GlitchAnalyser:
+    def __init__(self, Tobs=TOBS, dt=10.0, injection_params=None, random_seed=None):
+        self.Tobs = Tobs
+        self.dt = dt
+        self.Nobs = int(Tobs / dt)
+        self.t = np.linspace(0, Tobs, self.Nobs)
+        self.f = np.fft.rfftfreq(self.Nobs, dt)
 
-# imports
-from eryn.ensemble import EnsembleSampler
-from eryn.state import State
-from eryn.prior import uniform_dist, ProbDistContainer, log_uniform
+        self.sens_mat = SensitivityMatrix(
+            self.f,
+            sens_mat=[A1TDISens, A1TDISens],
+            stochastic_params=(1.0 * YRSID_SI,)
+        )
 
+        self.injection_params = injection_params or {
+            "start": Tobs * 0.25,
+            "scale": 1e-20,
+            "tau": 100,
+            "xi": 1
+        }
+        self.ndim = len(self.injection_params)
+        if random_seed is not None:
+            np.random.seed(random_seed)
+            self.injection_params = self.draw_injection()
+            self.label = f"inj{random_seed}"
 
+        self.outdir = f"outdir/{self.label}"
+        os.makedirs(self.outdir, exist_ok=True)
 
+        self.injection = self.fred_waveform(t=self.t, **self.injection_params)
+        self.simulated_data = DataResidualArray(self.injection, dt=self.dt)
+        self.analysis = AnalysisContainer(self.simulated_data, self.sens_mat, signal_gen=self.fred_waveform)
+        self.snr = self.analysis.calculate_signal_snr(*self.injection_params.values(), self.t, source_only=True)[0]
+        print("Injected SNR: ", self.snr)
 
+    def plot_analysis(self):
+        fig, ax = self.analysis.loglog()
+        fig.suptitle(f"SNR: {self.snr:.2f}")
+        plt.savefig(f"{self.outdir}/data.png")
 
+        fig2 = plt.figure()
+        plt.plot(self.t, self.injection[0], label='hplus')
+        plt.plot(self.t, self.injection[1], label='hcross')
+        plt.xlim(self.injection_params['start'] - 10, fred_end_time(**self.injection_params) + 10)
+        plt.legend()
+        plt.savefig(f"{self.outdir}/injection.png")
 
-dt = 10.0
-Tobs = 50 * 60 * 60 # 50 hrs
+        # combine the two saved figures into one
 
-Nobs = int(Tobs / dt)
-
-t = np.linspace(0, Tobs, Nobs)
-# just positive frequencies
-f = np.fft.rfftfreq(Nobs, dt)
-
-sens_kwargs = dict(
-    stochastic_params=(1.0 * YRSID_SI,)
-)
-
-sens_mat = SensitivityMatrix(f, [A1TDISens, A1TDISens], **sens_kwargs)
-
-
-INJECTION_PARAMS = dict(
-    start=Tobs*0.25,
-    scale=1e-20,
-    tau=100,
-    xi=1
-)
-
-def fred_waveform(start:float, scale:float, tau:float, xi:float, t:np.ndarray) -> np.ndarray:
-    p = FRED_pulse(t, start=start, scale=scale, tau=tau, xi=xi)
-    return [p,p]
-
-injection = fred_waveform(t=t, **INJECTION_PARAMS)
-
-plt.plot(t, injection[0], label='hplus')
-plt.plot(t, injection[0], label='hcross')
-# zoom in from T
-plt.xlim(INJECTION_PARAMS['start'] - 10, fred_end_time(**INJECTION_PARAMS) + 10)
-plt.legend()
-plt.show()
-
-simulated_data = DataResidualArray(injection, dt=dt)
-fig, ax = simulated_data.loglog()
-plt.show()
-
-
-analysis = AnalysisContainer(
-    simulated_data,
-    sens_mat,
-    signal_gen=fred_waveform,
-)
-
-fig, ax = analysis.loglog()
-plt.show()
-
-def compare_with_template(*waveform_args):
-    opt_snr, det_snr = analysis.calculate_signal_snr(*waveform_args, source_only=False)
-    lnl = analysis.calculate_signal_likelihood(*waveform_args, source_only=False)
-    print(f"Optimal SNR: {opt_snr:.2f}")
-    print(f"Det SNR: {det_snr:.2f}")
-    print(f"Log-likelihood: {lnl:.2f}")
+    def compare_with_template(self, *waveform_args):
+        opt_snr, det_snr = self.analysis.calculate_signal_snr(*waveform_args, source_only=False)
+        lnl = self.analysis.calculate_signal_likelihood(*waveform_args, source_only=False)
+        print(f"Optimal SNR: {opt_snr:.2f}")
+        print(f"Det SNR: {det_snr:.2f}")
+        print(f"Log-likelihood: {lnl:.2f}")
 
 
-## TEST LNL IS LESS WHEN AWAY FROM INJECTION
-compare_with_template(*INJECTION_PARAMS.values(), t)
-p = INJECTION_PARAMS.copy()
-p['start'] = p['start'] + -30
-compare_with_template(*p.values(), t)
+    def create_prior(self):
+        inj_vals = [*self.injection_params.values()]
 
-## TEST THAT LNL IS CENTERED AROUND INJECTION
-x_vals = np.linspace(-10.0 + INJECTION_PARAMS['start'], 10.0+INJECTION_PARAMS['start'], 1000)
-lnl_vals = []
-for x in x_vals:
-    p = INJECTION_PARAMS.copy()
-    p['start'] = x
-    lnl = analysis.calculate_signal_likelihood(*p.values(), t, source_only=False)
-    lnl_vals.append(lnl)
-plt.plot(x_vals, lnl_vals)
-plt.axvline(INJECTION_PARAMS['start'], color='r')
-plt.show()
+        t0 = max(0, inj_vals[0] - 1000)
+        t1 = min(self.Tobs, inj_vals[0] + 1000)
+
+        return ProbDistContainer({
+            0: uniform_dist(t0, t1),
+            1: log_uniform(1e-20, 1e-22),
+            2: log_uniform(1, 100),
+            3: log_uniform(1e-3, 10)
+        })
 
 
 
 
-
-def check_prior_validity(prior, n=1000):
-    fig = plt.figure()
-    plt.plot(t, injection[0], label='injection', color='blue', zorder=10)
+def check_prior_validity(prior, t, n=1000, save_path=None):
     samples = prior.rvs(n)
     snrs = np.zeros(n)
-    for i,s in enumerate(samples):
-        signal = analysis.signal_gen(*s, t)
-        plt.plot(t, signal[0],alpha=0.1,color='k')
+    for i, s in enumerate(samples):
+        signal = self.analysis.signal_gen(*s, t)
+        plt.plot(self.t, signal[0], alpha=0.1, color='k')
         tend = fred_end_time(*s)
-        lnl = analysis.calculate_signal_likelihood(*s, t, source_only=False)
-        if tend >= Tobs:
+        lnl = self.analysis.calculate_signal_likelihood(*s, self.t, source_only=False)
+        if tend >= self.Tobs:
             print(f"End time {tend} is greater than Tobs {s}")
             plt.show()
             return
         if not np.isfinite(lnl):
             print(f"Invalid sample: {s}")
             return
-        _, snr = analysis.calculate_signal_snr(*s, t, source_only=True)
-
-        # if snr<0:
-        #     print(f"Invalid SNR: {snr}")
-        #     plt.plot(t, signal[0],alpha=1,color='r')
-        #     plt.show()
-        #     return
-
+        _, snr = self.analysis.calculate_signal_snr(*s, self.t, source_only=True)
         snrs[i] = np.abs(snr)
+    if save_path:
+        plt.savefig(f"{save_path}_signals.png")
     plt.show()
     print("All samples valid")
 
-    min_bin_edge = 1e-5
-    collection_bin = snrs[snrs < min_bin_edge]
-    adjusted_snrs = snrs[snrs >= min_bin_edge]
 
-    # Add the collection bin count to the adjusted snrs
-    adjusted_snrs = np.append(adjusted_snrs, [min_bin_edge] * len(collection_bin))
-
-    # Define the bins
-    log_snr_bins = np.geomspace(min_bin_edge, 1e4, 50)
-
-    # Plot the histogram with the adjusted snrs
-    plt.hist(adjusted_snrs, bins=log_snr_bins)
-
-    # Mark the collection bin
-    plt.axvline(min_bin_edge, color='r', linestyle='dashed', linewidth=1)
-    # plt.text(min_bin_edge, plt.ylim()[1] * 0.9, 'Collection Bin', rotation=90, verticalalignment='center', color='r')
-    plt.xscale('log')
+    if save_path:
+        plt.savefig(f"{save_path}_snr_hist.png")
     plt.show()
 
-prior = ProbDistContainer({
-    0:uniform_dist(0, Tobs/2), # start
-    1:log_uniform(INJECTION_PARAMS['scale']*1e-2, INJECTION_PARAMS['scale']*1e+2),# scale
-    2:uniform_dist(INJECTION_PARAMS['tau']*0.1, INJECTION_PARAMS['tau']*20), # tau
-    3:log_uniform(1e-3, 10) # xi
-})
 
-print(prior)
-check_prior_validity(prior, n=1000)
+from tqdm.auto import trange
 
-
-nwalkers = 10
-sampler = EnsembleSampler(
-    nwalkers,
-    4,
-    analysis.eryn_likelihood_function,
-    prior,
-    args=(t,),
-
-)
-ndim = len(INJECTION_PARAMS)
-# best_guess = np.array([*INJECTION_PARAMS.values()]).reshape(-1,1)
-# best_guess = np.repeat(best_guess[np.newaxis, :], nwalkers, axis=0)
-# best_guess = best_guess.reshape((1, nwalkers, 1, ndim))
-# start_state = State(best_guess)
-start_state = State(prior.rvs(size=(1, nwalkers, 1)))
-sampler.run_mcmc(start_state, 2000, progress=True)
-import corner
-
-
-#### Chains
-fig, ax = plt.subplots(ndim, 1)
-fig.set_size_inches(10, 8)
-for i in range(ndim):
-    for walk in range(nwalkers):
-        ax[i].plot(sampler.get_chain()['model_0'][:, 0, walk, :, i])
-
-
-
-samples = sampler.get_chain()['model_0'].reshape(-1, 4)
-corner.corner(samples, truths=np.array([*INJECTION_PARAMS.values()]))
-plt.show()
+if __name__ == '__main__':
+    for i in trange(100):
+        GlitchAnalyser(random_seed=i).run_mcmc()

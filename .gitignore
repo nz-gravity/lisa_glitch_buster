@@ -8,6 +8,7 @@ out_test
 *.csv
 *.pt
 *.DS_Store
+*.npy
 
 # C extensions
 *.so

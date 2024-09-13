@@ -88,9 +88,11 @@ class Data:
         )
         ax.legend()
 
-        fig.savefig(f"tmp1.png")
-        fig2.savefig(f"tmp2.png")
-        concat_images(["tmp1.png", "tmp2.png"], f"{outdir}/data.png")
+        fig.savefig(f"{outdir}/tmp1.png")
+        fig2.savefig(f"{outdir}/tmp2.png")
+        concat_images(
+            [f"{outdir}/tmp1.png", f"{outdir}/tmp2.png"], f"{outdir}/data.png"
+        )
 
     @property
     def trues(self):

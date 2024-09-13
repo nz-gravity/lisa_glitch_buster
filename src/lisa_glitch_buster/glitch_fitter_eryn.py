@@ -75,12 +75,13 @@ class GlitchFitter:
                 # draw horizontal line at true value
                 ax[i].axhline(self.data.trues[i], color="k", linestyle="--")
 
+        fig.suptitle(f"SNR{self.data.snr:.2f}")
         fname = f"{self.outdir}/chains.png" if fname is None else fname
         plt.savefig(fname)
 
     def plot_corner(self, chain, fname=None):
         samples = chain.reshape(-1, NDIM)
-        corner.corner(samples, truths=self.data.trues)
+        corner.corner(samples, truths=self.data.trues, labels=PARAM_LATEX)
         fname = f"{self.outdir}/corner.png" if fname is None else fname
         plt.savefig(fname)
 
@@ -125,11 +126,16 @@ class GlitchFitter:
         sampler.run_mcmc(start_state, nsteps, progress=True, burn=burn)
         chain = sampler.get_chain()["model_0"]
 
-        self.plot_trace(chain, nwalkers, "tmp1.png")
-        self.plot_corner(chain, "tmp2.png")
-        self.plot_posterior(chain, "tmp3.png")
+        self.plot_trace(chain, nwalkers, f"{self.outdir}/tmp1.png")
+        self.plot_corner(chain, f"{self.outdir}/tmp2.png")
+        self.plot_posterior(chain, f"{self.outdir}/tmp3.png")
         concat_images(
-            ["tmp1.png", "tmp2.png", "tmp3.png"], f"{self.outdir}/result.png"
+            [
+                f"{self.outdir}/tmp1.png",
+                f"{self.outdir}/tmp2.png",
+                f"{self.outdir}/tmp3.png",
+            ],
+            f"{self.outdir}/result.png",
         )
 
         # save

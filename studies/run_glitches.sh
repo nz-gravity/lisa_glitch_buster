@@ -8,8 +8,6 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=16G
 
-# Load necessary modules
-module load python/3.8
-
-# Run the Python script with the array index as an argument
-python studies/run_glitches.py ${SLURM_ARRAY_TASK_ID}
+module load  python-scientific/3.10.4-foss-2022a
+source /fred/oz303/avajpeyi/venvs/glitch/bin/activate
+python run_glitches.py ${SLURM_ARRAY_TASK_ID}

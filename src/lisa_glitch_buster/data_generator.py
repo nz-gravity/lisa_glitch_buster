@@ -47,7 +47,7 @@ class Data:
     def injection_params(self):
         if not hasattr(self, "_injection_params"):
             if self.seed:
-                print(f"Getting injection from seed{seed}")
+                print(f"Getting injection from seed{self.seed}")
                 self._injection_params = InjectionGenerator.draw_injection()
             else:
                 self._injection_params = {

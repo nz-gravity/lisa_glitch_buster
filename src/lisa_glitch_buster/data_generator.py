@@ -23,7 +23,7 @@ from .postproc.plot_collection_hist import hist_collection
 
 
 class Data:
-    def __init__(self, seed=None, Tobs=TOBS, dt=DT):
+    def __init__(self, seed=None):
         self.seed = seed
         self.ndim = len(self.injection_params)
         self.injection = waveform(**self.injection_params, t=TIMES)
@@ -91,5 +91,15 @@ class Data:
         fig2.savefig(f"tmp2.png")
         concat_images(["tmp1.png", "tmp2.png"], f"{outdir}/data.png")
 
+    @property
     def trues(self):
-        return [*self.injection_params.values()]
+        return np.array([*self.injection_params.values()])
+
+    def save_injection(self, outdir):
+        data = dict(
+            **self.injection_params,
+            snr=self.snr,
+        )
+        with open(f"{outdir}/injection.csv", "w") as f:
+            f.write(",".join(data.keys()) + "\n")
+            f.write(",".join(map(str, data.values())) + "\n")

@@ -5,7 +5,7 @@ from lisatools.utils.constants import YRSID_SI
 
 from .backend.model.fred_pulse import waveform
 
-TOBS = YRSID_SI / 12  # 1 month
+TOBS = YRSID_SI / 365 / 24  # 1 HR
 DT = 10.0
 DF = 1.0 / TOBS
 N = int(TOBS / DT)

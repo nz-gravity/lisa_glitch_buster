@@ -1,6 +1,7 @@
 import math
 import sys
 
+import numba
 import numpy as np
 import scipy.special as special
 from scipy.optimize import root_scalar
@@ -9,7 +10,8 @@ from scipy.signal import convolve
 from .common import MAX_EXP, MAX_FLOAT, MIN_FLOAT
 
 
-def FRED_pulse(times, start, scale, tau, xi, **kwargs):
+@numba.jit(nopython=True)
+def FRED_pulse(times, start, scale, tau, xi):
     r"""
     The amplitude-normalised equation for a fast-rise expontential-decay pulse.
     The rate is calculated at each input time and returned as an array.
@@ -75,6 +77,7 @@ def fred_end_time(start, scale, tau, xi, threshold=0.01):
     return result.root
 
 
+@numba.jit(nopython=True)
 def waveform(
     start: float, scale: float, tau: float, xi: float, t: np.ndarray
 ) -> np.ndarray:

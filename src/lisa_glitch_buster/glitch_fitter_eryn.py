@@ -1,6 +1,8 @@
 import os
 
 import bilby.core.result
+import corner
+import matplotlib.pyplot as plt
 import numpy as np
 from bilby import run_sampler
 from eryn.ensemble import EnsembleSampler, State
@@ -12,6 +14,7 @@ from .constants import (
     SCALE_RANGE,
     START_RANGE,
     TAU_RANGE,
+    TIMES,
     TOBS,
     XI_RANGE,
 )
@@ -24,17 +27,17 @@ from .postproc.pulse_plotter import plot_pulse
 # from .backend.fisher import FisherMatrixPosteriorEstimator
 
 
-
-
 def get_prior(start_time):
     t0 = max(0, start_time - 1000)
     t1 = min(TOBS, start_time + 1000)
-    return {
-        0: uniform_dist(t0, t1),
-        1: uniform_dist(*SCALE_RANGE),
-        2: uniform_dist(*TAU_RANGE),
-        3: uniform_dist(*XI_RANGE),
-    }
+    return ProbDistContainer(
+        {
+            0: uniform_dist(t0, t1),
+            1: uniform_dist(*SCALE_RANGE),
+            2: uniform_dist(*TAU_RANGE),
+            3: uniform_dist(*XI_RANGE),
+        }
+    )
 
 
 class GlitchFitter:
@@ -69,39 +72,43 @@ class GlitchFitter:
             for walk in range(nwalkers):
                 ax[i].plot(chain[:, 0, walk, :, i])
                 ax[i].set_ylabel(PARAM_LATEX[i])
-                ax[i].ax_hline(
-                    self.injection_params[i], color="k", linestyle="--"
-                )
+                # draw horizontal line at true value
+                ax[i].axhline(self.data.trues[i], color="k", linestyle="--")
 
         fname = f"{self.outdir}/chains.png" if fname is None else fname
         plt.savefig(fname)
 
-    def plot_corner(self, chain):
+    def plot_corner(self, chain, fname=None):
         samples = chain.reshape(-1, NDIM)
-        corner.corner(
-            samples, truths=np.array([*self.injection_params.values()])
-        )
+        corner.corner(samples, truths=self.data.trues)
         fname = f"{self.outdir}/corner.png" if fname is None else fname
         plt.savefig(fname)
 
-    def plot_posterior(self, chain):
+    def plot_posterior(self, chain, fname=None):
         samples = chain.reshape(-1, NDIM)
+        # get 100 random samples from the chain
+        samples = samples[
+            np.random.choice(samples.shape[0], 100, replace=False)
+        ]
         signals = np.array(
-            [self.analysis.signal_gen(*s, self.t)[0] for s in samples]
+            [self.data.analysis.signal_gen(*s, TIMES)[0] for s in samples]
         )
         qtls = np.percentile(signals, [0.05, 0.5, 0.95], axis=0)
-        fig, ax = plt.subplots(NDIM, 1)
-        ax.plot(TIMES, qtls[1], color="C0")
-        ax.fill_between(
-            TIMES,
-            np.arange(len(qtls[1])),
-            qtls[0],
-            qtls[2],
-            color="C0",
-            alpha=0.5,
-            label="90% CI",
+        fig, ax = plt.subplots(1, 1)
+        ax.plot(TIMES, qtls[1], color="C0", label="Median")
+        # ax.fill_between(
+        #     TIMES,
+        #     qtls[0],
+        #     qtls[2],
+        #     color="C0",
+        #     alpha=0.5,
+        #     label="90% CI",
+        # )
+        for s in signals:
+            ax.plot(TIMES, s, color="C0", alpha=0.1)
+        ax.plot(
+            TIMES, self.data.injection[0], color="k", label="True", ls="--"
         )
-        ax.plot(TIMES, self.data.injection[0], color="k", label="True")
         ax.legend()
         fname = f"{self.outdir}/ppc.png" if fname is None else fname
         plt.savefig(fname)
@@ -114,7 +121,7 @@ class GlitchFitter:
             priors=self.prior,
             args=(TIMES,),
         )
-        start_state = State(prior.rvs(size=(1, nwalkers, 1)))
+        start_state = State(self.prior.rvs(size=(1, nwalkers, 1)))
         sampler.run_mcmc(start_state, nsteps, progress=True, burn=burn)
         chain = sampler.get_chain()["model_0"]
 
@@ -127,6 +134,7 @@ class GlitchFitter:
 
         # save
         np.save(f"{self.outdir}/chain.npy", chain)
+        self.data.save_injection(self.outdir)
 
     # def get_fisher_posterior(self, n_sample=1000):
     #     fpe = FisherMatrixPosteriorEstimator(
